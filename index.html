@@ -2823,7 +2823,140 @@ html, body {
         loadCurrentLevel(true);
       }
       function buyHealth() { if (wallet >= 10 && hp < maxHp && !gameOver) { playSfx('buy'); wallet -= 10; hp++; burst(playerGroup.position.x, playerGroup.position.y + 1.08, 7); spawnText('+HP', playerGroup.position.x, playerGroup.position.y + 1.38); updateUI(); } }
-      function startGame() { unlockAudio(); playSfx('start'); startMusic(); restartGame(); }
+
+      // The Awakening: ten-second non-destructive cinematic using the actual game actor.
+      const awakening = { active: false, elapsed: 0, scenery: null, hidden: [], skip: null };
+      function awakeningEase(t) { t = Math.max(0, Math.min(1, t)); return t*t*(3-2*t); }
+      function awakeningFinish() {
+        if (!awakening.active) return;
+        awakening.active = false;
+        awakening.hidden.forEach(item => { item.object.visible = item.visible; });
+        awakening.hidden = [];
+        if (awakening.scenery) {
+          clearGroup(awakening.scenery);
+          scene.remove(awakening.scenery);
+          awakening.scenery = null;
+        }
+        if (awakening.skip) {
+          awakening.skip.remove();
+          awakening.skip = null;
+        }
+        $('ui').style.visibility = '';
+        $('touchControls').style.visibility = '';
+        playerGroup.position.set(0, 0, 0);
+        facingDir = 1;
+        setPlayerState('idle', true);
+        playSfx('start');
+        startMusic();
+        restartGame();
+      }
+      function awakeningStart() {
+        if (awakening.active) return;
+        unlockAudio();
+        $('intro').classList.add('hidden');
+        $('intro').style.display = 'none';
+        $('ui').style.visibility = 'hidden';
+        $('touchControls').style.visibility = 'hidden';
+        awakening.hidden = scene.children.filter(object => object !== playerGroup).map(object => {
+          const item = { object, visible: object.visible };
+          object.visible = false;
+          return item;
+        });
+        const group = new THREE.Group();
+        scene.add(group);
+        awakening.scenery = group;
+        const horizontal = (y, left, right) =>
+          addLineTo(group, [new THREE.Vector3(left,y,0),new THREE.Vector3(right,y,0)]);
+        horizontal(0,-7,7);
+        // A ladder-like hierarchy of rigid, familiar platform lines rather than new scenery.
+        for (let tier=1;tier<=5;tier++) {
+          const halfWidth=6.5-tier*.78;
+          horizontal(tier*1.2,-halfWidth,halfWidth);
+          for(let j=0;j<tier;j++) {
+            const x=-halfWidth+((j+1)/(tier+1))*halfWidth*2;
+            const g=new THREE.Group();
+            g.position.set(x,tier*1.2,0);
+            group.add(g);
+            drawCircle(g,0,0.68,0.12);
+            addLineTo(g,[new THREE.Vector3(0,.55,0),new THREE.Vector3(0,.26,0)]);
+            addLineTo(g,[new THREE.Vector3(0,.48,0),new THREE.Vector3(-.20,.32,0)]);
+            addLineTo(g,[new THREE.Vector3(0,.48,0),new THREE.Vector3(.20,.32,0)]);
+            addLineTo(g,[new THREE.Vector3(0,.26,0),new THREE.Vector3(-.17,0,0)]);
+            addLineTo(g,[new THREE.Vector3(0,.26,0),new THREE.Vector3(.17,0,0)]);
+            g.userData.awakeningExtra=true;
+            g.userData.awakeningOrigin=x;
+            g.userData.awakeningTier=tier;
+          }
+        }
+        // A single prescribed path that the protagonist will consciously abandon.
+        horizontal(-.24,-7,7);
+        playerGroup.position.set(-1.4,0,0.05);
+        facingDir = 1;
+        setPlayerState('idle',true);
+        awakening.elapsed=0;
+        awakening.active=true;
+        awakening.skip=document.createElement('button');
+        awakening.skip.textContent='SKIP INTRO';
+        awakening.skip.setAttribute('aria-label','Skip cinematic and start game');
+        Object.assign(awakening.skip.style,{
+          position:'fixed',right:'20px',bottom:'20px',zIndex:'150',
+          background:'#fff',color:'#000',border:'2px solid #000',
+          padding:'12px 16px',fontFamily:'monospace',fontWeight:'bold',
+          cursor:'pointer',boxShadow:'4px 4px 0 #000'
+        });
+        awakening.skip.addEventListener('click', awakeningFinish);
+        document.body.appendChild(awakening.skip);
+      }
+      function awakeningUpdate(dt) {
+        if (!awakening.active) return;
+        awakening.elapsed=Math.min(10,awakening.elapsed+dt);
+        const t=awakening.elapsed;
+        const heroX=-1.4;
+        // Camera and actor positions are deterministic, based on time rather than frame count.
+        if(t<2) {
+          const p=awakeningEase(t/2);
+          playerGroup.position.set(heroX,0,0.05);
+          setPlayerState('idle');
+          camera.position.set(heroX,1.5+(.15*p),2.7+(.65*p));
+          camera.lookAt(heroX,1.52,0);
+        } else if(t<4.5) {
+          const p=awakeningEase((t-2)/2.5);
+          playerGroup.position.set(heroX,0,0.05);
+          camera.position.set(heroX-1.3*p,1.65+1.55*p,3.35+15.5*p);
+          camera.lookAt(heroX,1.5+1.2*p,0);
+        } else if(t<7) {
+          const p=awakeningEase((t-4.5)/2.5);
+          playerGroup.position.set(heroX+.32*p,0,0.05);
+          facingDir=1;
+          setPlayerState('idle');
+          camera.position.set(heroX-2.1+.4*p,2.4,10.8);
+          camera.lookAt(heroX+.6*p,1.6,0);
+        } else {
+          const p=awakeningEase((t-7)/3);
+          const x=heroX+.32+2.55*p;
+          playerGroup.position.set(x,0,0.05);
+          setPlayerState('run');
+          camera.position.set(x+1.6,2.9,11.2);
+          camera.lookAt(x+.7,1.3,0);
+        }
+        if(awakening.scenery) {
+          awakening.scenery.children.forEach(child => {
+            if(child.userData.awakeningExtra) {
+              child.position.x=child.userData.awakeningOrigin+
+                .13*Math.sin(t*3.4+child.userData.awakeningTier*.8);
+            }
+          });
+        }
+        if(t>=10) awakeningFinish();
+      }
+      safeOn(window,'keydown',event => {
+        if (awakening.active && (event.key==='Escape' || event.key==='Enter')) {
+          event.preventDefault();
+          awakeningFinish();
+        }
+      });
+
+      function startGame() { awakeningStart(); }
 
       function setupHiddenLevelCheat() {
         const walletEl = $('walletDisplay');
@@ -3053,7 +3186,7 @@ html, body {
         } else {
           enemies.forEach(e => { if (!e.dead) drawEnemy(e); });
         }
-        updateAttackVisualAim(); updateWorldDetails(frameScale); updateFX(); updateCamera(); drawStickman(); renderer.render(scene, camera);
+        updateAttackVisualAim(); updateWorldDetails(frameScale); updateFX(); if (awakening.active) awakeningUpdate(dt); else updateCamera(); drawStickman(); renderer.render(scene, camera);
       }
 
       function initializeGame() {
