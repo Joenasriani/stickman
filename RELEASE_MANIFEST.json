@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0",
+  "project": "In a Stickman's World",
+  "release_id": "stability-lock-15-levels-2026-11-05",
+  "release_date": "2026-11-05",
+  "authority": "User-approved reverted 15-level no-outro gameplay ZIP",
+  "source_file": "index.html",
+  "source_sha256": "185b233500237341e00d74c19036f6873b0f4cb2aada7e4218e315d35d821e9f",
+  "source_git_blob_sha1": "c17b919453dd4ae646bd045ef0678cc2a78df32f",
+  "source_bytes": 142537,
+  "source_zip_sha256": "e80ae54bb58f359cbbaf8babb9c7650b3d96114dce65a545b72480ac5b63accd",
+  "playable_level_count": 15,
+  "playable_level_numbers": [
+    1,
+    2,
+    3,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+  ],
+  "exclusions": [
+    "Level 4",
+    "duplicate levels 17-20",
+    "throne-ending outro",
+    "secret-menu outro button"
+  ],
+  "preserved_assets": [
+    "fonts/bubble.ttf",
+    "music/Prince of Persia low res.mp3",
+    "sfx/whoosh and hit.wav",
+    "sfx/whoosh in air (1).mp3",
+    "sfx/whoosh in air (2).mp3",
+    "sfx/whoosh last hit.mp3"
+  ],
+  "external_dependency": "Three.js r128 loaded from cdnjs (not locally bundled)",
+  "validation": {
+    "html_sha256_matched_locally": true,
+    "github_blob_sha1_matches_original": true,
+    "javascript_syntax": "passed on approved local package",
+    "zip_integrity": "passed on approved local package",
+    "browser_runtime": "not tested in this synchronization",
+    "mobile_portrait_landscape": "not tested in this synchronization",
+    "all_levels_playthrough": "not tested"
+  },
+  "archived_workflows": "The three main-branch auto-rewriting workflows removed to prevent unintended gameplay changes. Their prior source remains in Git history and backup branch.",
+  "rollback_branch": "backup/pre-sync-2026-11-05",
+  "rollback_commit": "56a0cc582468ce2457c358b73543502d9dd7869c",
+  "unmerged_feature_branch": "feature/awakening-cinematic-10s",
+  "notes": "Game HTML synchronized byte-for-byte; no gameplay modifications performed. Binary assets unchanged. No claims of runtime playability are made by this manifest."
+}

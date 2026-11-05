@@ -316,7 +316,7 @@ html, body {
         flex: 1 1 0;
         text-align: center;
       }
-      #introCard { min-height: 0; padding: 20px; }
+      #introCard { padding: 20px; }
       #introPrompt { align-items: stretch; }
       #startButton { width: 100%; }
     }
@@ -683,9 +683,9 @@ html, body {
       let lastFootstepFrame = -999;
       const maxHp = 5;
       const CHAR_SCALE = 0.72;
-      const DESKTOP_CAMERA_DISTANCE = 11.2;
+      const DESKTOP_CAMERA_DISTANCE = 14;
       const DEFAULT_CAMERA_DISTANCE = 14;
-      const PORTRAIT_TOUCH_CAMERA_DISTANCE = 28;
+      const PORTRAIT_TOUCH_CAMERA_DISTANCE = 34;
       const UNIFORM_STROKE_WIDTH = 0.034;
       const UNIFORM_SOFT_STROKE_WIDTH = 0.026;
 
@@ -703,10 +703,13 @@ html, body {
 
       function getCameraProfile() {
         if (isDesktopViewport()) {
-          return { name: 'desktop', defaultDistance: DESKTOP_CAMERA_DISTANCE, minDistance: 7.5, maxDistance: 18 };
+          const wide = window.innerWidth || innerWidth || 0;
+          if (wide > 1920) return { name: 'desktopUltraWide', defaultDistance: 22, minDistance: 12, maxDistance: 30 };
+          if (wide > 1400) return { name: 'desktopWide', defaultDistance: 18, minDistance: 10, maxDistance: 26 };
+          return { name: 'desktop', defaultDistance: DESKTOP_CAMERA_DISTANCE, minDistance: 7.5, maxDistance: 22 };
         }
         if (isTouchViewport() && isPortraitViewport()) {
-          return { name: 'touchPortrait', defaultDistance: PORTRAIT_TOUCH_CAMERA_DISTANCE, minDistance: 18, maxDistance: 46 };
+          return { name: 'touchPortrait', defaultDistance: PORTRAIT_TOUCH_CAMERA_DISTANCE, minDistance: 18, maxDistance: 52 };
         }
         return { name: 'touchLandscape', defaultDistance: DEFAULT_CAMERA_DISTANCE, minDistance: 6.5, maxDistance: 22 };
       }
@@ -1574,9 +1577,32 @@ html, body {
         return best;
       }
 
+      function findEnemyPatrolBounds(x, groundY) {
+        let best = null;
+        let bestDelta = Infinity;
+        for (const p of platforms) {
+          const a = Math.min(p.x1, p.x2);
+          const b = Math.max(p.x1, p.x2);
+          if (x < a + 0.10 || x > b - 0.10) continue;
+          const delta = Math.abs(p.y - groundY);
+          if (delta < bestDelta && delta < 0.65) {
+            const safeMin = a + 0.72;
+            const safeMax = b - 0.72;
+            const center = Math.max(a + 0.25, Math.min(b - 0.25, x));
+            best = safeMax > safeMin
+              ? { min: safeMin, max: safeMax }
+              : { min: center, max: center };
+            bestDelta = delta;
+          }
+        }
+        if (!best) best = { min: x, max: x };
+        return best;
+      }
+
       function createEnemy(x, groundY) {
         const group = new THREE.Group(); group.position.set(x, groundY, 0); group.scale.set(CHAR_SCALE, CHAR_SCALE, CHAR_SCALE); scene.add(group);
-        const e = { x, y: groundY, startX: x, startY: groundY, group, hp: 3, dead: false, frame: 0, attackCooldown: 0, attackTimer: 0, attackType: 'punch', hasHit: false, state: 'idle', battleCryTimeout: null, bubbleTimeout: null, pendingBubbleWord: null, bubbleSpawned: false };
+        const patrol = findEnemyPatrolBounds(x, groundY);
+        const e = { x, y: groundY, startX: x, startY: groundY, patrolMin: patrol.min, patrolMax: patrol.max, patrolDir: Math.random() > 0.5 ? 1 : -1, group, hp: 3, dead: false, frame: 0, attackCooldown: 0, attackTimer: 0, attackType: 'punch', hasHit: false, state: 'idle', battleCryTimeout: null, bubbleTimeout: null, pendingBubbleWord: null, bubbleSpawned: false };
         enemies.push(e); drawEnemy(e); return e;
       }
 
@@ -1762,200 +1788,392 @@ html, body {
         }
       }
 
+      const STRICT_LEVEL_MIN_EXIT_X = Object.freeze({
+        4: 42, 5: 60, 6: 82, 7: 108, 8: 138, 9: 172, 10: 210,
+        11: 252, 12: 298, 13: 348, 14: 402, 15: 460, 16: 522,
+        17: 588, 18: 658, 19: 732, 20: 810
+      });
+
+      const STRICT_LEVEL_ARCHITECTURES = Object.freeze({
+        4:  { name: 'split-basin',        firstY: 0.0, stairs: 0, pattern: [0, 2.2, 0, 2.8, 5.0, 2.5, 0], gapOffset: 1, lenOffset: 0 },
+        5:  { name: 'canyon-climb',       firstY: 2.2, stairs: 1, pattern: [0, -2.2, 0, 2.5, 5.3, 2.8, 0], gapOffset: 3, lenOffset: 1 },
+        6:  { name: 'sawtooth-islands',   firstY: 5.0, stairs: 0, pattern: [0, 2.5, 0, -2.2, 0, 2.8, 0], gapOffset: 0, lenOffset: 2 },
+        7:  { name: 'floating-cluster',   firstY: 0.0, stairs: 1, pattern: [0, 2.8, 5.3, 2.5, 0, 2.2, 5.0], gapOffset: 4, lenOffset: 3 },
+        8:  { name: 'u-switchback',       firstY: 2.8, stairs: 0, pattern: [0, 2.2, 5.0, 2.2, 0, -2.5, 0], gapOffset: 2, lenOffset: 4 },
+        9:  { name: 'three-tower-bridge', firstY: 5.3, stairs: 1, pattern: [0, -2.8, 0, 2.2, 5.0, 2.5, 0], gapOffset: 1, lenOffset: 5 },
+        10: { name: 'pinwheel-hub',       firstY: 2.5, stairs: 0, pattern: [0, 2.5, 0, -2.5, 0, 2.8, 5.3, 2.2], gapOffset: 4, lenOffset: 6 },
+        11: { name: 'crawl-and-pop',      firstY: 0.0, stairs: 1, pattern: [0, 0, 2.2, 0, 2.8, 5.3, 2.5], gapOffset: 0, lenOffset: 7 },
+        12: { name: 'crescent-steps',     firstY: 2.2, stairs: 0, pattern: [0, 2.8, 5.6, 2.8, 0, 2.5, 5.0], gapOffset: 2, lenOffset: 8 },
+        13: { name: 'drop-then-climb',    firstY: 5.0, stairs: 1, pattern: [0, -2.5, -5.0, -2.2, 0, 2.8, 5.3], gapOffset: 4, lenOffset: 9 },
+        14: { name: 'bullseye-rings',     firstY: 7.5, stairs: 0, pattern: [0, -2.5, -5.0, -2.2, 0, -2.8, 0], gapOffset: 1, lenOffset: 10 },
+        15: { name: 'enemy-alley',        firstY: 0.0, stairs: 1, pattern: [0, 2.2, 0, 2.5, 0, 2.8, 0, 5.0], gapOffset: 3, lenOffset: 11 },
+        16: { name: 'moon-spine',         firstY: 2.8, stairs: 0, pattern: [0, 2.5, 5.0, 7.8, 5.0, 2.5, 0], gapOffset: 0, lenOffset: 12 },
+        17: { name: 'crown-cascade',      firstY: 5.3, stairs: 1, pattern: [0, -2.8, -5.3, -2.8, 0, 2.2, 4.7], gapOffset: 2, lenOffset: 13 },
+        18: { name: 'inverted-basin',     firstY: 2.5, stairs: 0, pattern: [0, 2.8, 0, -2.5, 0, 2.2, 5.0, 2.2], gapOffset: 4, lenOffset: 14 },
+        19: { name: 'leap-arc',           firstY: 0.0, stairs: 1, pattern: [0, 2.5, 5.3, 8.1, 5.3, 2.8, 0, 2.2], gapOffset: 1, lenOffset: 15 },
+        20: { name: 'final-pinwheel',     firstY: 7.8, stairs: 0, pattern: [0, -2.8, -5.3, -2.5, 0, -2.2, -5.0, -2.2, 0], gapOffset: 3, lenOffset: 16 }
+      });
+
       function getBibleTierStep(levelNumber, index, offset = 0) {
         const steps = [2.2, 2.5, 2.8];
         return steps[(levelNumber + index + offset) % steps.length];
       }
 
-      function getBibleGap(levelNumber, index) {
+      function getBibleGap(levelNumber, index, offset = 0) {
         const gaps = [0.8, 1.2, 1.8, 2.2, 2.6];
-        return gaps[(levelNumber * 2 + index * 3) % gaps.length];
+        return gaps[(levelNumber + index * 2 + offset) % gaps.length];
       }
 
-      function getBiblePlatformLength(levelNumber, index) {
-        const lens = [3.4, 5.2, 7.0, 4.2, 8.4, 6.2, 10.2, 3.8, 11.4, 5.8];
-        return lens[(levelNumber + index * 2) % lens.length];
+      function clampRouteY(y) {
+        return Math.max(0, Math.min(11.2, Math.round(y * 10) / 10));
       }
 
-      function computeBiblePathY(levelNumber, count) {
-        const profiles = {
-          4:  [0, 2.5, 0, 2.2],
-          5:  [0, 2.2, 4.7, 2.2, 5.0],
-          6:  [2.2, 0, 2.8, 5.3, 2.8, 5.6],
-          7:  [0, 2.8, 5.3, 2.5, 0, 2.2, 4.7],
-          8:  [2.5, 0, 2.2, 4.7, 7.5, 5.0, 2.2, 4.7],
-          9:  [0, 2.2, 0, 2.5, 5.0, 7.8, 5.3, 2.8, 5.6],
-          10: [2.8, 5.3, 2.5, 0, 2.2, 4.7, 7.5, 5.0, 2.2, 4.7],
-          11: [0, 2.5, 5.3, 7.5, 5.0, 2.2, 0, 2.8, 5.6, 8.1, 5.3],
-          12: [2.2, 0, 2.5, 5.0, 2.2, 4.7, 7.5, 5.3, 8.1, 5.6, 2.8, 5.3],
-          13: [0, 2.8, 5.3, 2.5, 5.0, 7.8, 10.0, 7.5, 5.0, 2.2, 4.7, 7.5, 5.3],
-          14: [2.5, 0, 2.2, 5.0, 7.5, 5.3, 2.8, 0, 2.5, 5.3, 8.1, 10.6, 8.4, 5.6],
-          15: [0, 2.2, 4.7, 7.5, 5.0, 2.5, 0, 2.8, 5.3, 8.1, 5.6, 2.8, 5.3, 7.5, 10.0],
-          16: [2.8, 5.3, 7.8, 5.0, 2.2, 0, 2.5, 5.0, 7.8, 10.0, 7.5, 5.3, 2.8, 5.6, 8.1, 10.6],
-          17: [0, 2.5, 0, 2.8, 5.6, 8.1, 5.3, 2.5, 4.7, 7.5, 10.3, 7.8, 5.0, 2.2, 4.7, 7.2, 10.0],
-          18: [2.2, 4.7, 7.5, 10.0, 7.2, 4.7, 2.2, 0, 2.8, 5.3, 8.1, 10.6, 8.4, 5.6, 2.8, 5.3, 7.8, 10.3],
-          19: [0, 2.8, 5.3, 2.5, 0, 2.2, 4.7, 7.5, 10.3, 7.8, 5.0, 7.2, 9.7, 6.9, 4.4, 1.6, 4.1, 6.9, 9.4],
-          20: [2.5, 0, 2.2, 4.7, 7.5, 10.0, 7.2, 4.4, 1.9, 4.7, 7.2, 10.0, 8.2, 5.7, 2.9, 5.4, 8.2, 10.4, 7.9, 10.7]
-        };
-        const preset = profiles[levelNumber];
-        if (preset && preset.length === count) return preset.slice();
-        const ys = [];
-        let y = 0;
-        for (let i = 0; i < count; i++) {
-          if (i > 0) {
-            const step = getBibleTierStep(levelNumber, i, i % 2);
-            const dir = ((i + levelNumber) % 5 === 0 || i % 7 === 0) ? -1 : 1;
-            y = Math.max(0, Math.min(10.8, Math.round((y + dir * step) * 10) / 10));
-          }
-          ys.push(y);
+      function getStructureBaseY(levelNumber, structureIndex) {
+        const cfg = STRICT_LEVEL_ARCHITECTURES[levelNumber] || STRICT_LEVEL_ARCHITECTURES[4];
+        const raw = cfg.firstY + cfg.pattern[structureIndex % cfg.pattern.length];
+        return clampRouteY(raw);
+      }
+
+      function findMandatoryRecordNear(records, targetX, avoidY = null) {
+        let best = null;
+        let bestScore = Infinity;
+        for (const r of records) {
+          const cx = (r.x1 + r.x2) * 0.5;
+          let score = Math.abs(cx - targetX);
+          if (avoidY !== null && Math.abs(r.y - avoidY) < 2.0) score += 35;
+          if (r.x2 - r.x1 < 3.2) score += 12;
+          if (score < bestScore) { best = r; bestScore = score; }
         }
-        return ys;
+        return best || records[Math.floor(records.length * 0.5)] || records[0];
       }
 
-      function getLevelArchitecture(levelNumber) {
-        const styles = [
-          'split-islands', 'stepped-zigzag', 'canyon-drop', 'floating-archipelago',
-          'u-switchback', 'spiral-column', 'sawtooth-ridge', 'hourglass',
-          'moon-bridge', 'broken-stairless-climb', 'double-valley', 'high-crown',
-          'inverted-basin', 'long-zigzag', 'terrace-cascade', 'pillar-hop',
-          'final-moon-spine'
-        ];
-        return styles[Math.max(0, Math.min(styles.length - 1, levelNumber - 4))];
-      }
-
-      function getArchitectureTuning(style, levelNumber) {
-        const base = {
-          shelfPattern: 0,
-          noStair: false,
-          stairBias: 0.5,
-          gapOffset: 0,
-          lenOffset: 0,
-          potionBias: 0,
-          enemyBias: 0
-        };
-        const map = {
-          'split-islands': { shelfPattern: 1, noStair: true, gapOffset: 1, lenOffset: 2, potionBias: 1, enemyBias: 0 },
-          'stepped-zigzag': { shelfPattern: 2, noStair: false, stairBias: 0.45, gapOffset: 3, lenOffset: 0, potionBias: 2, enemyBias: 1 },
-          'canyon-drop': { shelfPattern: 3, noStair: true, gapOffset: 4, lenOffset: 3, potionBias: 3, enemyBias: 2 },
-          'floating-archipelago': { shelfPattern: 4, noStair: true, gapOffset: 0, lenOffset: 5, potionBias: 1, enemyBias: 3 },
-          'u-switchback': { shelfPattern: 5, noStair: false, stairBias: 0.72, gapOffset: 2, lenOffset: 1, potionBias: 4, enemyBias: 0 },
-          'spiral-column': { shelfPattern: 6, noStair: false, stairBias: 0.30, gapOffset: 1, lenOffset: 4, potionBias: 2, enemyBias: 4 },
-          'sawtooth-ridge': { shelfPattern: 7, noStair: true, gapOffset: 3, lenOffset: 2, potionBias: 5, enemyBias: 1 },
-          'hourglass': { shelfPattern: 8, noStair: false, stairBias: 0.55, gapOffset: 4, lenOffset: 6, potionBias: 0, enemyBias: 5 },
-          'moon-bridge': { shelfPattern: 9, noStair: true, gapOffset: 0, lenOffset: 7, potionBias: 3, enemyBias: 2 },
-          'broken-stairless-climb': { shelfPattern: 10, noStair: true, gapOffset: 2, lenOffset: 8, potionBias: 1, enemyBias: 6 },
-          'double-valley': { shelfPattern: 11, noStair: false, stairBias: 0.62, gapOffset: 1, lenOffset: 9, potionBias: 4, enemyBias: 3 },
-          'high-crown': { shelfPattern: 12, noStair: false, stairBias: 0.36, gapOffset: 3, lenOffset: 5, potionBias: 6, enemyBias: 4 },
-          'inverted-basin': { shelfPattern: 13, noStair: true, gapOffset: 4, lenOffset: 1, potionBias: 2, enemyBias: 7 },
-          'long-zigzag': { shelfPattern: 14, noStair: false, stairBias: 0.50, gapOffset: 0, lenOffset: 3, potionBias: 5, enemyBias: 0 },
-          'terrace-cascade': { shelfPattern: 15, noStair: true, gapOffset: 2, lenOffset: 6, potionBias: 7, enemyBias: 6 },
-          'pillar-hop': { shelfPattern: 16, noStair: false, stairBias: 0.80, gapOffset: 1, lenOffset: 4, potionBias: 8, enemyBias: 5 },
-          'final-moon-spine': { shelfPattern: 17, noStair: false, stairBias: 0.25, gapOffset: 3, lenOffset: 9, potionBias: 9, enemyBias: 9 }
-        };
-        return Object.assign(base, map[style] || {});
+      function buildExactRouteStair(fromRecord, toRecord, stepHPreference) {
+        const dy = toRecord.y - fromRecord.y;
+        const span = toRecord.x1 - fromRecord.x2;
+        if (dy <= 0 || span < 0.5) return false;
+        const steps = Math.max(4, Math.min(20, Math.round(dy / stepHPreference)));
+        const exactStepH = dy / steps;
+        createStaircase(fromRecord.x2, fromRecord.y, steps, span / steps, exactStepH, 1);
+        return true;
       }
 
       function buildBibleLevel(levelNumber, obstacleKinds = []) {
-        createDoor(-7, 0.8, false);
+        const cfg = STRICT_LEVEL_ARCHITECTURES[levelNumber] || STRICT_LEVEL_ARCHITECTURES[4];
+        const targetExitX = STRICT_LEVEL_MIN_EXIT_X[levelNumber] || (levelNumber * 42);
+        const startX = -8;
+        const startY = cfg.firstY;
+        createDoor(-7, startY + 0.8, false);
 
-        const style = getLevelArchitecture(levelNumber);
-        const tuning = getArchitectureTuning(style, levelNumber);
-        const pathY = computeBiblePathY(levelNumber, levelNumber);
-        const mainRecords = [];
+        const mandatoryRecords = [];
         const shelfRecords = [];
-        let cursor = -8;
-        const positiveJumps = [];
-        for (let i = 0; i < levelNumber - 1; i++) {
-          if (pathY[i + 1] > pathY[i]) positiveJumps.push(i);
-        }
-        const wantsStair = !tuning.noStair && positiveJumps.length > 0;
-        const stairIndex = wantsStair ? positiveJumps[Math.max(0, Math.min(positiveJumps.length - 1, Math.floor(positiveJumps.length * tuning.stairBias)))] : -1;
-
-        const oneObstacleIndex = levelNumber <= 10
-          ? Math.max(1, Math.min(levelNumber - 2, Math.floor(levelNumber * 0.55)))
-          : Math.max(1, Math.min(levelNumber - 2, Math.floor(levelNumber * 0.42)));
-        const firstHalfIndex = Math.max(1, Math.min(levelNumber - 3, Math.floor(levelNumber * 0.30)));
-        const secondHalfIndex = Math.max(firstHalfIndex + 3, Math.min(levelNumber - 2, Math.floor(levelNumber * 0.70)));
-        const protectedObstacleIndices = obstacleKinds.length > 1
-          ? new Set([firstHalfIndex, secondHalfIndex])
-          : new Set([oneObstacleIndex]);
+        const moduleWidth = (targetExitX - startX + 4.0) / levelNumber;
+        let stairBuilt = false;
 
         for (let i = 0; i < levelNumber; i++) {
-          const y = pathY[i];
-          const len = getBiblePlatformLength(levelNumber + tuning.lenOffset, i);
-          const gap = getBibleGap(levelNumber + tuning.gapOffset, i);
-          const x1 = cursor;
-          const x2 = x1 + len;
-          createPlatform(x1, y, x2);
-          mainRecords.push({ x1, x2, y, index: i, style });
+          const moduleStart = startX + i * moduleWidth;
+          const moduleEnd = i === levelNumber - 1 ? targetExitX + 3.0 : startX + (i + 1) * moduleWidth - getBibleGap(levelNumber, i, cfg.gapOffset) * 0.45;
+          const baseY = i === 0 ? startY : getStructureBaseY(levelNumber, i);
+          const approxSegmentCount = Math.max(2, Math.ceil((moduleEnd - moduleStart) / 10.4));
+          const gapList = [];
+          for (let j = 0; j < approxSegmentCount - 1; j++) gapList.push(getBibleGap(levelNumber, i + j, cfg.gapOffset));
+          const totalGap = gapList.reduce((a, b) => a + b, 0);
+          const segmentLen = Math.max(3.0, Math.min(11.8, (moduleEnd - moduleStart - totalGap) / approxSegmentCount));
+          const structureRecords = [];
+          let x = moduleStart;
 
-          const tierA = getBibleTierStep(levelNumber, i, tuning.shelfPattern);
-          const tierB = getBibleTierStep(levelNumber, i, tuning.shelfPattern + 1);
-          const shelfLen = 2.4 + ((levelNumber + i + tuning.shelfPattern) % 4) * 0.55;
-          const highShelfLen = 2.2 + ((levelNumber + i * 2 + tuning.shelfPattern) % 3) * 0.50;
-          const leftShelf = (i + tuning.shelfPattern) % 2 === 0;
-          const shelfShift = leftShelf ? 0.45 : Math.max(0.25, len - shelfLen - 0.45);
-          const shelfX1 = x1 + shelfShift;
-          const shelfX2 = shelfX1 + shelfLen;
-          const shelfY = y + tierA;
-          createPlatform(shelfX1, shelfY, shelfX2);
-          shelfRecords.push({ x1: shelfX1, x2: shelfX2, y: shelfY, index: i, style });
-
-          const highAllowed = (i + levelNumber + tuning.shelfPattern) % 3 !== 0;
-          if (highAllowed) {
-            const centered = (tuning.shelfPattern + i) % 4 === 0;
-            const highX1 = centered ? x1 + Math.max(0.15, len * 0.5 - highShelfLen * 0.5) : x1 + (leftShelf ? Math.max(0.2, len - highShelfLen - 0.35) : 0.35);
-            const highX2 = highX1 + highShelfLen;
-            const highY = shelfY + tierB;
-            createPlatform(highX1, highY, highX2);
-            shelfRecords.push({ x1: highX1, x2: highX2, y: highY, index: i, high: true, style });
-          }
-
-          const potionShelf = shelfRecords[shelfRecords.length - 1];
-          createPotion((potionShelf.x1 + potionShelf.x2) * 0.5, potionShelf.y);
-
-          const spikeWouldConflictWithDynamicObstacle = protectedObstacleIndices.has(i);
-          if (i % 5 === 2 && !spikeWouldConflictWithDynamicObstacle) {
-            createSpike(x1 + Math.min(len - 1.2, 1.05 + ((i + tuning.gapOffset) % 3) * 0.8), y + 0.05);
-          }
-
-          const enemyMode = (i + levelNumber + tuning.enemyBias) % 5;
-          const enemySurface = enemyMode === 0 || enemyMode === 3 ? shelfRecords[shelfRecords.length - 1] : mainRecords[mainRecords.length - 1];
-          const enemyX = Math.max(enemySurface.x1 + 0.8, Math.min(enemySurface.x2 - 0.8, (enemySurface.x1 + enemySurface.x2) * 0.5 + (((i + tuning.enemyBias) % 3) - 1) * 0.45));
-          createEnemy(enemyX, enemySurface.y);
-
-          if (i === stairIndex && i < levelNumber - 1) {
-            const dy = pathY[i + 1] - y;
-            if (dy > 0) {
-              const stepH = dy >= 2.8 ? 0.35 : 0.22;
-              const steps = Math.max(4, Math.min(20, Math.round(dy / stepH)));
-              const exactStepH = dy / steps;
-              const stepW = dy >= 2.8 ? 0.35 : 0.42;
-              createStaircase(x2, y, steps, stepW, exactStepH, 1);
-              cursor = x2 + steps * stepW;
-            } else {
-              cursor = x2 + gap;
+          for (let j = 0; j < approxSegmentCount; j++) {
+            const localPattern = cfg.pattern[(i + j + cfg.lenOffset) % cfg.pattern.length];
+            let y = clampRouteY(baseY + (j === 0 ? 0 : localPattern === 0 ? 0 : Math.sign(localPattern) * getBibleTierStep(levelNumber, i + j, cfg.lenOffset)));
+            if (j > 0) {
+              const previousY = structureRecords[j - 1].y;
+              const diff = Math.abs(y - previousY);
+              if (diff !== 0 && diff < 2.2) y = previousY + Math.sign(y - previousY || 1) * getBibleTierStep(levelNumber, i + j, cfg.lenOffset);
+              y = clampRouteY(y);
             }
-          } else {
-            cursor = x2 + gap;
+            const lengthJ = Math.max(3.0, Math.min(11.8, segmentLen + (((levelNumber + i + j + cfg.lenOffset) % 3) - 1) * 0.35));
+            let x2 = x + lengthJ;
+            if (i === levelNumber - 1 && j === approxSegmentCount - 1) x2 = Math.max(x2, targetExitX + 2.0);
+            createPlatform(x, y, x2);
+            const rec = { x1: x, x2, y, structure: i, route: j, mandatory: true };
+            mandatoryRecords.push(rec);
+            structureRecords.push(rec);
+            x = x2 + (gapList[j] || 0);
+          }
+
+          if (!stairBuilt && cfg.stairs === 1 && i > 0 && i < levelNumber - 1) {
+            for (let j = 0; j < structureRecords.length - 1; j++) {
+              if (buildExactRouteStair(structureRecords[j], structureRecords[j + 1], (levelNumber % 2) ? 0.22 : 0.35)) { stairBuilt = true; break; }
+            }
+          }
+
+          const anchor = structureRecords[Math.min(structureRecords.length - 1, Math.max(0, (i + cfg.gapOffset) % structureRecords.length))];
+          const shelfStep = getBibleTierStep(levelNumber, i, cfg.lenOffset + 2);
+          let shelfY = anchor.y + shelfStep;
+          if (shelfY > 12.6) shelfY = anchor.y - shelfStep;
+          shelfY = clampRouteY(shelfY);
+          const shelfLen = 3.0 + ((levelNumber + i + cfg.lenOffset) % 4) * 0.7;
+          const shelfBiases = [0.18, 0.62, 0.35, 0.78, 0.48];
+          const shelfBias = shelfBiases[(levelNumber + i + cfg.gapOffset + cfg.lenOffset) % shelfBiases.length];
+          const shelfX1 = Math.max(anchor.x1 + 0.45, Math.min(anchor.x2 - 1.7, anchor.x1 + (anchor.x2 - anchor.x1) * shelfBias));
+          const shelfX2 = shelfX1 + shelfLen;
+          createPlatform(shelfX1, shelfY, shelfX2);
+          const shelfRec = { x1: shelfX1, x2: shelfX2, y: shelfY, structure: i, route: -1, mandatory: false };
+          shelfRecords.push(shelfRec);
+          createPotion((shelfX1 + shelfX2) * 0.5, shelfY);
+
+          const enemyAnchor = ((i + cfg.lenOffset) % 4 === 2) ? shelfRec : structureRecords[Math.floor(structureRecords.length * 0.55)];
+          const enemyX = Math.max(enemyAnchor.x1 + 0.8, Math.min(enemyAnchor.x2 - 0.8, (enemyAnchor.x1 + enemyAnchor.x2) * 0.5));
+          createEnemy(enemyX, enemyAnchor.y);
+        }
+
+        if (obstacleKinds.length > 1) {
+          const first = findMandatoryRecordNear(mandatoryRecords, startX + (targetExitX - startX) * 0.30);
+          const second = findMandatoryRecordNear(mandatoryRecords, startX + (targetExitX - startX) * 0.70, first ? first.y : null);
+          [first, second].forEach((rec, idx) => {
+            if (!rec || !obstacleKinds[idx]) return;
+            const ox = Math.max(rec.x1 + 1.35, Math.min(rec.x2 - 1.35, (rec.x1 + rec.x2) * 0.5));
+            placeBibleObstacle(obstacleKinds[idx], ox, rec.y, Math.min(5.4, Math.max(3.2, rec.x2 - rec.x1 - 0.4)));
+          });
+        } else if (obstacleKinds.length === 1) {
+          const rec = findMandatoryRecordNear(mandatoryRecords, startX + (targetExitX - startX) * 0.52);
+          if (rec) {
+            const ox = Math.max(rec.x1 + 1.35, Math.min(rec.x2 - 1.35, (rec.x1 + rec.x2) * 0.5));
+            placeBibleObstacle(obstacleKinds[0], ox, rec.y, Math.min(5.4, Math.max(3.2, rec.x2 - rec.x1 - 0.4)));
           }
         }
 
-        const secondTierRecord = shelfRecords.find(r => r.index >= secondHalfIndex && r.index <= Math.min(levelNumber - 1, secondHalfIndex + 2)) || mainRecords[secondHalfIndex];
-        const placements = obstacleKinds.length > 1
-          ? [mainRecords[firstHalfIndex], secondTierRecord]
-          : [mainRecords[oneObstacleIndex]];
-
-        obstacleKinds.forEach((kind, idx) => {
-          const rec = placements[idx] || placements[0] || mainRecords[0];
-          const ox = Math.max(rec.x1 + 1.15, Math.min(rec.x2 - 1.15, (rec.x1 + rec.x2) * 0.5));
-          placeBibleObstacle(kind, ox, rec.y, Math.min(5.0, Math.max(3.0, rec.x2 - rec.x1 - 0.5)));
-        });
-
-        const last = mainRecords[mainRecords.length - 1];
-        createDoor((last.x1 + last.x2) * 0.5, last.y + 0.8, true);
+        const finalRecord = findMandatoryRecordNear(mandatoryRecords, targetExitX);
+        if (finalRecord && (targetExitX < finalRecord.x1 || targetExitX > finalRecord.x2)) {
+          createPlatform(targetExitX - 2.6, finalRecord.y, targetExitX + 2.6);
+        }
+        const exitY = finalRecord ? finalRecord.y + 0.8 : startY + 0.8;
+        createDoor(targetExitX, exitY, true);
       }
 
+
+
+      const PREMIUM_LEVEL_MIN_EXIT_X = Object.freeze({
+        4: 42, 5: 60, 6: 82, 7: 108, 8: 138, 9: 172, 10: 210,
+        11: 252, 12: 298, 13: 348, 14: 402, 15: 460, 16: 522,
+        17: 588, 18: 658, 19: 732, 20: 810
+      });
+
+      // BANNED FOR FUTURE LEVEL CREATION per user rule: Level 4 hazard set = risingSpikes + pulseLaser.
+      // Do not use those two obstacle designs in newly created levels unless explicitly restored.
+      const PREMIUM_OBSTACLE_SEQUENCE = Object.freeze({
+        // Level 4 was removed from the playable campaign; its old hazard set is kept here only as legacy data.
+        4: ['risingSpikes', 'pulseLaser'],
+        5: ['rotatingMace', 'slidingBladeGate'],
+        // Levels 6-10: three hazards each - early read, mid timing gate, late pressure beat.
+        6: ['stomper', 'daggerRing', 'pulseLaser'],
+        7: ['bouncingOrb', 'shadowSlash', 'rotatingMace'],
+        8: ['ceilingNeedles', 'windmillBlades', 'slidingBladeGate'],
+        9: ['crossZap', 'risingSpikes', 'bouncingOrb'],
+        10: ['pulseLaser', 'rotatingMace', 'stomper'],
+        // Levels 11-14: four hazards each, spaced across the longer route.
+        11: ['stomper', 'slidingBladeGate', 'daggerRing', 'crossZap'],
+        12: ['daggerRing', 'bouncingOrb', 'windmillBlades', 'pulseLaser'],
+        13: ['ceilingNeedles', 'shadowSlash', 'risingSpikes', 'rotatingMace'],
+        14: ['windmillBlades', 'crossZap', 'stomper', 'slidingBladeGate'],
+        // Levels 15-20: five hazards each, spread from early to final third on varied tiers.
+        15: ['risingSpikes', 'rotatingMace', 'pulseLaser', 'daggerRing', 'shadowSlash'],
+        16: ['pulseLaser', 'daggerRing', 'stomper', 'windmillBlades', 'crossZap'],
+        17: ['stomper', 'bouncingOrb', 'slidingBladeGate', 'ceilingNeedles', 'risingSpikes'],
+        18: ['ceilingNeedles', 'windmillBlades', 'shadowSlash', 'pulseLaser', 'rotatingMace'],
+        19: ['slidingBladeGate', 'shadowSlash', 'crossZap', 'bouncingOrb', 'daggerRing'],
+        20: ['crossZap', 'rotatingMace', 'ceilingNeedles', 'stomper', 'windmillBlades']
+      });
+
+      const PREMIUM_LEVEL_THEMES = Object.freeze({
+        4:  { title: 'Split Basin Gate',        firstY: 0.0,  ySeq: [0, 2.2, 0, 2.8],                         seg: [2, 3, 2, 3],       gaps: [1.2, 2.2, 0.8, 1.8],       modes: ['run', 'crest', 'run', 'stepUp'],       stair: -1, potionOffset: 1 },
+        5:  { title: 'Clean Switchback Stairs', firstY: 2.2,  ySeq: [2.2, 0, 2.5, 5.0, 7.5],                   seg: [3, 2, 3, 2, 3],    gaps: [0.8, 1.8, 2.6, 1.2, 2.2],  modes: ['stepDown', 'run', 'stepUp', 'run', 'crest'], stair: 4, potionOffset: 2 },
+        6:  { title: 'Sawtooth Islands',        firstY: 4.7,  ySeq: [4.7, 2.2, 5.0, 2.5, 5.3, 2.8],             seg: [2, 3, 2, 4, 2, 3], gaps: [2.6, 1.2, 2.2, 0.8, 1.8],  modes: ['run', 'stepUp', 'stepDown', 'crest', 'run', 'valley'], stair: -1, potionOffset: 0 },
+        7:  { title: 'Crescent Descent',        firstY: 0.0,  ySeq: [0, 2.5, 5.3, 7.8, 5.3, 2.8, 0.3],          seg: [3, 2, 4, 2, 3, 2, 3], gaps: [1.8, 0.8, 2.6, 1.2, 2.2], modes: ['stepUp', 'crest', 'run', 'stepDown', 'valley', 'run'], stair: 3, potionOffset: 1 },
+        8:  { title: 'High Canyon Drop',        firstY: 7.5,  ySeq: [7.5, 5.0, 2.5, 0, 2.2, 4.7, 7.5, 10.0],    seg: [4, 2, 3, 2, 4, 2, 3, 2], gaps: [2.2, 1.2, 0.8, 2.6, 1.8], modes: ['run', 'stepDown', 'run', 'valley', 'stepUp', 'crest'], stair: -1, potionOffset: 2 },
+        9:  { title: 'Three-Tower Bridge',      firstY: 2.5,  ySeq: [2.5, 5.0, 7.5, 5.0, 2.5, 5.3, 8.1, 5.6, 3.1], seg: [2, 4, 2, 3, 2, 4, 2, 3, 2], gaps: [1.2, 2.6, 1.8, 0.8, 2.2], modes: ['tower', 'run', 'stepDown', 'tower', 'run'], stair: 5, potionOffset: 0 },
+        10: { title: 'Pinwheel Hub',            firstY: 0.0,  ySeq: [0, 2.8, 0.3, 3.1, 5.6, 2.8, 5.3, 8.1, 5.6, 2.8], seg: [3, 3, 2, 4, 2, 3, 3, 2, 4, 2], gaps: [2.6, 0.8, 1.8, 2.2, 1.2], modes: ['valley', 'stepUp', 'run', 'crest', 'stepDown'], stair: -1, potionOffset: 1 },
+        11: { title: 'Underground Crawl',       firstY: 5.0,  ySeq: [5.0, 2.5, 0, 2.2, 0, 2.8, 5.3, 2.8, 0.3, 2.5, 5.0], seg: [4, 3, 2, 3, 4, 2, 3, 2, 4, 3, 2], gaps: [0.8, 1.2, 2.2, 1.8, 2.6], modes: ['run', 'lowCrawl', 'stepUp', 'run', 'valley'], stair: 6, potionOffset: 2 },
+        12: { title: 'Floating Archipelago',    firstY: 2.2,  ySeq: [2.2, 5.0, 7.8, 5.3, 8.1, 10.6, 7.8, 5.3, 2.8, 5.6, 8.4, 6.2], seg: [2, 3, 2, 3, 2, 4, 2, 3, 2, 3, 2, 4], gaps: [2.6, 2.2, 1.8, 1.2, 0.8], modes: ['stepUp', 'run', 'crest', 'stepDown', 'island'], stair: -1, potionOffset: 0 },
+        13: { title: 'Mirror Canyon',           firstY: 10.0, ySeq: [10.0, 7.5, 5.0, 2.5, 0, 2.8, 5.3, 7.8, 10.3, 7.8, 5.3, 2.8, 5.6], seg: [3, 2, 3, 2, 4, 2, 3, 2, 4, 2, 3, 2, 3], gaps: [1.8, 2.6, 0.8, 2.2, 1.2], modes: ['stepDown', 'run', 'valley', 'stepUp', 'crest'], stair: 4, potionOffset: 1 },
+        14: { title: 'Bullseye Terraces',       firstY: 0.0,  ySeq: [0, 2.5, 5.0, 7.5, 10.0, 7.5, 5.0, 2.5, 0, 2.2, 4.7, 7.2, 9.7, 7.2], seg: [2, 4, 2, 3, 2, 4, 2, 3, 2, 4, 2, 3, 2, 4], gaps: [1.2, 0.8, 2.6, 1.8, 2.2], modes: ['stepUp', 'crest', 'run', 'stepDown', 'bullseye'], stair: -1, potionOffset: 2 },
+        15: { title: 'Enemy Alley Switches',    firstY: 2.5,  ySeq: [2.5, 5.0, 7.8, 5.3, 2.8, 0.3, 3.1, 5.6, 8.1, 10.3, 7.8, 5.3, 7.5, 10.0, 7.5], seg: [4, 2, 3, 2, 4, 3, 2, 3, 4, 2, 3, 2, 4, 3, 2], gaps: [2.6, 1.2, 2.2, 1.8, 0.8], modes: ['run', 'stepUp', 'enemyLane', 'stepDown', 'crest'], stair: 10, potionOffset: 0 },
+        16: { title: 'Spiral Pillar Walk',      firstY: 7.5,  ySeq: [7.5, 5.0, 2.5, 0.0, 2.2, 4.7, 7.5, 10.0, 12.2, 9.7, 7.2, 4.7, 2.2, 4.4, 6.9, 9.4], seg: [3, 2, 4, 2, 3, 2, 4, 2, 3, 2, 4, 2, 3, 2, 4, 2], gaps: [0.8, 1.8, 2.6, 1.2, 2.2], modes: ['spiral', 'run', 'stepDown', 'stepUp', 'crest'], stair: -1, potionOffset: 1 },
+        17: { title: 'Leap Faith Ladder',       firstY: 0.0,  ySeq: [0, 2.2, 5.0, 7.5, 5.3, 2.8, 5.6, 8.1, 10.6, 8.4, 6.2, 3.4, 0.9, 3.7, 6.2, 9.0, 11.5], seg: [2, 3, 2, 4, 2, 3, 2, 4, 2, 3, 2, 4, 2, 3, 2, 4, 2], gaps: [2.6, 2.2, 1.8, 1.2, 0.8], modes: ['leap', 'stepUp', 'run', 'valley', 'crest'], stair: 8, potionOffset: 2 },
+        18: { title: 'Moon Terrace Crawl',      firstY: 5.3,  ySeq: [5.3, 2.8, 0.3, 2.5, 5.0, 7.8, 10.0, 7.5, 5.0, 2.2, 4.7, 7.5, 10.3, 12.5, 10.0, 7.2, 4.7, 7.5], seg: [4, 3, 2, 4, 2, 3, 2, 4, 3, 2, 4, 2, 3, 2, 4, 3, 2, 3], gaps: [1.2, 0.8, 2.2, 2.6, 1.8], modes: ['crawl', 'run', 'stepUp', 'crest', 'stepDown'], stair: -1, potionOffset: 0 },
+        19: { title: 'Mirrored Canyon Spiral',  firstY: 10.0, ySeq: [10.0, 7.2, 4.7, 2.2, 0.0, 2.8, 5.3, 7.8, 10.6, 8.1, 5.6, 3.1, 5.9, 8.4, 11.2, 8.7, 6.2, 3.7, 6.5], seg: [3, 2, 4, 2, 3, 2, 4, 2, 3, 2, 4, 2, 3, 2, 4, 2, 3, 2, 4], gaps: [1.8, 2.6, 1.2, 0.8, 2.2], modes: ['mirror', 'stepDown', 'run', 'stepUp', 'valley'], stair: 5, potionOffset: 1 },
+        20: { title: 'Final Royal Switchbacks', firstY: 2.2,  ySeq: [2.2, 5.0, 7.5, 10.3, 12.5, 9.7, 7.2, 4.7, 2.2, 0.0, 2.5, 5.3, 8.1, 10.6, 8.4, 5.9, 3.4, 6.2, 9.0, 11.5], seg: [4, 2, 3, 2, 4, 3, 2, 4, 2, 3, 2, 4, 3, 2, 4, 2, 3, 2, 4, 3], gaps: [2.2, 0.8, 1.8, 2.6, 1.2], modes: ['royal', 'switch', 'stepUp', 'stepDown', 'crest'], stair: 12, potionOffset: 2 }
+      });
+
+      function getPremiumTargetExitX(levelNumber) {
+        return PREMIUM_LEVEL_MIN_EXIT_X[levelNumber] || levelNumber * 42;
+      }
+
+      function clampPremiumY(y) {
+        return Math.max(0, Math.min(12.5, Math.round(y * 10) / 10));
+      }
+
+      function premiumTierStep(levelNumber, structureIndex, segmentIndex = 0) {
+        return [2.2, 2.5, 2.8][(levelNumber + structureIndex + segmentIndex) % 3];
+      }
+
+      function getDesignerSegmentY(theme, levelNumber, structureIndex, segmentIndex, previousY) {
+        const base = theme.ySeq[structureIndex % theme.ySeq.length];
+        const mode = theme.modes[(structureIndex + segmentIndex) % theme.modes.length];
+        const step = premiumTierStep(levelNumber, structureIndex, segmentIndex);
+        let y = base;
+        if (mode === 'stepUp' && segmentIndex > 0) y = base + step;
+        else if (mode === 'stepDown' && segmentIndex > 0) y = base - step;
+        else if (mode === 'valley') y = base + (segmentIndex % 2 === 0 ? 0 : -step);
+        else if (mode === 'crest' || mode === 'tower' || mode === 'bullseye') y = base + (segmentIndex % 2 === 0 ? 0 : step);
+        else if (mode === 'spiral' || mode === 'royal' || mode === 'switch') y = base + (segmentIndex % 3 === 2 ? step : 0);
+        else if (mode === 'leap' || mode === 'island') y = base + (segmentIndex % 2 === 1 ? step : 0);
+        else if (mode === 'crawl' || mode === 'lowCrawl') y = base + (segmentIndex % 3 === 1 ? -step : 0);
+        else if (mode === 'enemyLane') y = base;
+        y = clampPremiumY(y);
+        if (Number.isFinite(previousY)) {
+          const diff = Math.abs(y - previousY);
+          if (diff > 2.8) y = clampPremiumY(previousY + Math.sign(y - previousY) * premiumTierStep(levelNumber, structureIndex, segmentIndex + 1));
+        }
+        return y;
+      }
+
+      function createDesignerStair(fromRecord, toRecord, steep = false) {
+        const dy = toRecord.y - fromRecord.y;
+        const dx = toRecord.x1 - fromRecord.x2;
+        if (dy <= 0 || dx < 0.5) return false;
+        const preferred = steep ? 0.35 : 0.22;
+        const steps = Math.max(4, Math.min(20, Math.round(dy / preferred)));
+        createStaircase(fromRecord.x2, fromRecord.y, steps, dx / steps, dy / steps, 1);
+        return true;
+      }
+
+      function findPremiumRecordNear(records, targetX, avoidY = null, usedRecords = null) {
+        let best = null;
+        let bestScore = Infinity;
+        for (const r of records) {
+          const len = r.x2 - r.x1;
+          const cx = (r.x1 + r.x2) * 0.5;
+          let score = Math.abs(cx - targetX);
+          if (usedRecords && usedRecords.has(r)) score += 500;
+          if (avoidY !== null && Math.abs(r.y - avoidY) < 2.1) score += 55;
+          if (len < 5.8) score += 90;
+          if (len < 4.2) score += 130;
+          if (r.segment !== 0) score += 8;
+          if (score < bestScore) { best = r; bestScore = score; }
+        }
+        return best || records[Math.floor(records.length * 0.5)] || records[0];
+      }
+
+      function placeDesignerObstacle(kind, record, fallbackX = null) {
+        if (!record || !kind) return;
+        const platformLen = Math.max(0.1, record.x2 - record.x1);
+        const span = Math.max(2.6, Math.min(5.8, platformLen - 1.25));
+        const centerX = (record.x1 + record.x2) * 0.5;
+        const targetX = fallbackX === null ? centerX : fallbackX;
+        const margin = Math.max(1.35, span * 0.5 + 0.25);
+        const ox = Math.max(record.x1 + margin, Math.min(record.x2 - margin, targetX));
+        placeBibleObstacle(kind, Number.isFinite(ox) ? ox : centerX, record.y, span);
+      }
+
+      function buildPremiumStickmanLevel(levelNumber, obstacleKinds = null) {
+        const theme = PREMIUM_LEVEL_THEMES[levelNumber] || PREMIUM_LEVEL_THEMES[4];
+        const targetExitX = getPremiumTargetExitX(levelNumber);
+        const startX = -8;
+        const startY = theme.firstY;
+        createDoor(-7, startY + 0.8, false);
+
+        const segmentCounts = [];
+        for (let i = 0; i < levelNumber; i++) segmentCounts.push(theme.seg[i % theme.seg.length]);
+        const totalSegments = segmentCounts.reduce((a, b) => a + b, 0);
+        const gapValues = [];
+        for (let i = 0; i < totalSegments - 1; i++) gapValues.push(theme.gaps[i % theme.gaps.length]);
+        const totalGap = gapValues.reduce((a, b) => a + b, 0);
+        const totalRouteLength = targetExitX + 3.0 - startX;
+        const lengthBudget = Math.max(2.8 * totalSegments, totalRouteLength - totalGap);
+        const rawLens = [];
+        for (let i = 0; i < totalSegments; i++) rawLens.push([3.2, 4.6, 6.2, 8.0, 10.2, 11.8][(levelNumber * 3 + i * 2) % 6]);
+        const rawTotal = rawLens.reduce((a, b) => a + b, 0);
+        const scale = lengthBudget / rawTotal;
+
+        const routeRecords = [];
+        const recordsByStructure = [];
+        const enemySpots = [];
+        let x = startX;
+        let gapCursor = 0;
+        let lengthCursor = 0;
+        let previousRecord = null;
+        let stairBuilt = false;
+
+        for (let i = 0; i < levelNumber; i++) {
+          const structureRecords = [];
+          const segCount = segmentCounts[i];
+          for (let j = 0; j < segCount; j++) {
+            let y = getDesignerSegmentY(theme, levelNumber, i, j, previousRecord ? previousRecord.y : undefined);
+            const len = Math.max(2.9, Math.min(12.2, rawLens[lengthCursor] * scale));
+            let x2 = x + len;
+            if (i === levelNumber - 1 && j === segCount - 1) x2 = Math.max(x2, targetExitX + 2.6);
+            createPlatform(x, y, x2);
+            const rec = { x1: x, x2, y, structure: i, segment: j, mandatory: true };
+            routeRecords.push(rec);
+            structureRecords.push(rec);
+            if (!stairBuilt && previousRecord && i === theme.stair && y > previousRecord.y && createDesignerStair(previousRecord, rec, levelNumber % 2 === 0)) stairBuilt = true;
+            previousRecord = rec;
+            x = x2 + (gapValues[gapCursor] || 0);
+            gapCursor++;
+            lengthCursor++;
+          }
+          recordsByStructure.push(structureRecords);
+
+          const enemyBase = structureRecords[Math.min(structureRecords.length - 1, Math.max(0, Math.floor((structureRecords.length - 1) * ((i % 4) / 3))))];
+          const enemyX = Math.max(enemyBase.x1 + 0.85, Math.min(enemyBase.x2 - 0.85, enemyBase.x1 + (enemyBase.x2 - enemyBase.x1) * (0.35 + (i % 3) * 0.15)));
+          enemySpots.push({ x: enemyX, y: enemyBase.y });
+
+          if ((i + theme.potionOffset) % 3 === 0) {
+            const anchor = structureRecords[Math.floor(structureRecords.length * 0.5)] || structureRecords[0];
+            const shelfStep = premiumTierStep(levelNumber, i, 2);
+            let shelfY = anchor.y + (((i + levelNumber) % 2 === 0) ? shelfStep : -shelfStep);
+            if (shelfY < 0) shelfY = anchor.y + shelfStep;
+            if (shelfY > 12.5) shelfY = anchor.y - shelfStep;
+            shelfY = clampPremiumY(shelfY);
+            const shelfLen = Math.min(4.6, Math.max(3.0, (anchor.x2 - anchor.x1) * 0.32));
+            const shelfX1 = Math.max(anchor.x1 + 0.4, Math.min(anchor.x2 - shelfLen - 0.3, anchor.x1 + (anchor.x2 - anchor.x1) * 0.56));
+            const shelfX2 = shelfX1 + shelfLen;
+            createPlatform(shelfX1, shelfY, shelfX2);
+            createPotion((shelfX1 + shelfX2) * 0.5, shelfY);
+          }
+        }
+
+        enemySpots.slice(0, levelNumber).forEach(e => createEnemy(e.x, e.y));
+
+        const kinds = obstacleKinds || PREMIUM_OBSTACLE_SEQUENCE[levelNumber] || [];
+        if (kinds.length > 0) {
+          const fractions = kinds.length === 1
+            ? [0.54]
+            : kinds.map((_, idx) => 0.22 + (0.62 * idx) / Math.max(1, kinds.length - 1));
+          const usedRecords = new Set();
+          let avoidY = null;
+          kinds.forEach((kind, idx) => {
+            const target = startX + (targetExitX - startX) * fractions[idx];
+            let rec = findPremiumRecordNear(routeRecords, target, avoidY, usedRecords);
+            if (rec && usedRecords.has(rec)) {
+              const searchSpan = Math.max(22, (targetExitX - startX) / Math.max(1, levelNumber));
+              const alternate = routeRecords
+                .filter(r => !usedRecords.has(r) && Math.abs(((r.x1 + r.x2) * 0.5) - target) < searchSpan)
+                .sort((a, b) => (b.x2 - b.x1) - (a.x2 - a.x1))[0];
+              if (alternate) rec = alternate;
+            }
+            placeDesignerObstacle(kind, rec);
+            if (rec) {
+              usedRecords.add(rec);
+              avoidY = rec.y;
+            }
+          });
+        }
+
+        const finalRecord = routeRecords.find(r => targetExitX >= r.x1 && targetExitX <= r.x2) || routeRecords[routeRecords.length - 1] || findPremiumRecordNear(routeRecords, targetExitX);
+        const exitX = finalRecord ? Math.max(targetExitX, Math.min(finalRecord.x2 - 0.8, Math.max(finalRecord.x1 + 0.8, targetExitX))) : targetExitX;
+        createDoor(exitX, (finalRecord ? finalRecord.y : startY) + 0.8, true);
+      }
       function drawEnemy(e) {
         if (lowPerfMode && e.frame % 2 !== 0 && e.state === 'idle') return;
         clearGroup(e.group);
@@ -2086,139 +2304,99 @@ html, body {
           }
         },
         {
-          name: 'Level 4',
-          start: { x: -7, y: 0 },
-          exit: { x: 0, y: 0 },
-          build() {
-            buildBibleLevel(4, ['risingSpikes']);
-          }
-        },
-        {
           name: 'Level 5',
-          start: { x: -7, y: 0 },
-          exit: { x: 0, y: 0 },
+          start: { x: -7, y: 2.2 },
+          exit: { x: 60, y: 3.0 },
           build() {
-            buildBibleLevel(5, ['pulseLaser']);
+            buildPremiumStickmanLevel(5);
           }
         },
         {
           name: 'Level 6',
-          start: { x: -7, y: 0 },
-          exit: { x: 0, y: 0 },
+          start: { x: -7, y: 4.7 },
+          exit: { x: 82, y: 5.5 },
           build() {
-            buildBibleLevel(6, ['rotatingMace']);
+            buildPremiumStickmanLevel(6);
           }
         },
         {
           name: 'Level 7',
-          start: { x: -7, y: 0 },
-          exit: { x: 0, y: 0 },
+          start: { x: -7, y: 0.0 },
+          exit: { x: 108, y: 0.8 },
           build() {
-            buildBibleLevel(7, ['stomper']);
+            buildPremiumStickmanLevel(7);
           }
         },
         {
           name: 'Level 8',
-          start: { x: -7, y: 0 },
-          exit: { x: 0, y: 0 },
+          start: { x: -7, y: 7.5 },
+          exit: { x: 138, y: 8.3 },
           build() {
-            buildBibleLevel(8, ['daggerRing']);
+            buildPremiumStickmanLevel(8);
           }
         },
         {
           name: 'Level 9',
-          start: { x: -7, y: 0 },
-          exit: { x: 0, y: 0 },
+          start: { x: -7, y: 2.5 },
+          exit: { x: 172, y: 3.3 },
           build() {
-            buildBibleLevel(9, ['bouncingOrb']);
+            buildPremiumStickmanLevel(9);
           }
         },
         {
           name: 'Level 10',
-          start: { x: -7, y: 0 },
-          exit: { x: 0, y: 0 },
+          start: { x: -7, y: 0.0 },
+          exit: { x: 210, y: 0.8 },
           build() {
-            buildBibleLevel(10, ['ceilingNeedles']);
+            buildPremiumStickmanLevel(10);
           }
         },
         {
           name: 'Level 11',
-          start: { x: -7, y: 0 },
-          exit: { x: 0, y: 0 },
+          start: { x: -7, y: 5.0 },
+          exit: { x: 252, y: 5.8 },
           build() {
-            buildBibleLevel(11, ['slidingBladeGate']);
+            buildPremiumStickmanLevel(11);
           }
         },
         {
           name: 'Level 12',
-          start: { x: -7, y: 0 },
-          exit: { x: 0, y: 0 },
+          start: { x: -7, y: 2.2 },
+          exit: { x: 298, y: 3.0 },
           build() {
-            buildBibleLevel(12, ['shadowSlash']);
+            buildPremiumStickmanLevel(12);
           }
         },
         {
           name: 'Level 13',
-          start: { x: -7, y: 0 },
-          exit: { x: 0, y: 0 },
+          start: { x: -7, y: 10.0 },
+          exit: { x: 348, y: 10.8 },
           build() {
-            buildBibleLevel(13, ['windmillBlades']);
+            buildPremiumStickmanLevel(13);
           }
         },
         {
           name: 'Level 14',
-          start: { x: -7, y: 0 },
-          exit: { x: 0, y: 0 },
+          start: { x: -7, y: 0.0 },
+          exit: { x: 402, y: 0.8 },
           build() {
-            buildBibleLevel(14, ['crossZap']);
+            buildPremiumStickmanLevel(14);
           }
         },
         {
           name: 'Level 15',
-          start: { x: -7, y: 0 },
-          exit: { x: 0, y: 0 },
+          start: { x: -7, y: 2.5 },
+          exit: { x: 460, y: 3.3 },
           build() {
-            buildBibleLevel(15, ['risingSpikes', 'shadowSlash']);
+            buildPremiumStickmanLevel(15);
           }
         },
         {
           name: 'Level 16',
-          start: { x: -7, y: 0 },
-          exit: { x: 0, y: 0 },
+          start: { x: -7, y: 7.5 },
+          exit: { x: 522, y: 8.3 },
           build() {
-            buildBibleLevel(16, ['pulseLaser', 'windmillBlades']);
-          }
-        },
-        {
-          name: 'Level 17',
-          start: { x: -7, y: 0 },
-          exit: { x: 0, y: 0 },
-          build() {
-            buildBibleLevel(17, ['rotatingMace', 'slidingBladeGate']);
-          }
-        },
-        {
-          name: 'Level 18',
-          start: { x: -7, y: 0 },
-          exit: { x: 0, y: 0 },
-          build() {
-            buildBibleLevel(18, ['stomper', 'bouncingOrb']);
-          }
-        },
-        {
-          name: 'Level 19',
-          start: { x: -7, y: 0 },
-          exit: { x: 0, y: 0 },
-          build() {
-            buildBibleLevel(19, ['daggerRing', 'ceilingNeedles']);
-          }
-        },
-        {
-          name: 'Level 20',
-          start: { x: -7, y: 0 },
-          exit: { x: 0, y: 0 },
-          build() {
-            buildBibleLevel(20, ['crossZap', 'windmillBlades']);
+            buildPremiumStickmanLevel(16);
           }
         }
 
@@ -2726,19 +2904,7 @@ html, body {
             e.group.position.y = e.y;
           }
 
-          if (Math.abs(dx) > 1.15) {
-            const step = Math.sign(dx) * 0.035;
-            const nextX = e.x + step;
-            const nextGround = enemyGroundAt(nextX, e.y);
-            if (nextGround && Math.abs(nextGround.y - e.y) < 0.2) {
-              e.state = 'walk';
-              e.x = nextX;
-              e.y = nextGround.y;
-              e.group.position.set(e.x, e.y, 0);
-            } else {
-              e.state = 'idle';
-            }
-          } else if (Math.abs(dx) <= 1.15 && Math.abs(dy) < 1.05 && e.attackCooldown <= 0) {
+          if (Math.abs(dx) <= 1.15 && Math.abs(dy) < 1.05 && e.attackCooldown <= 0) {
             e.state = 'attack';
             e.attackCooldown = 68;
             e.attackTimer = 34;
@@ -2748,7 +2914,23 @@ html, body {
             e.hasHit = false;
             e.frame = 0;
           } else {
-            e.state = 'idle';
+            const canChasePlayer = Math.abs(dy) < 1.05 && Math.abs(dx) < 5.4;
+            const patrolSpeed = 0.026 + ((e.startX * 10) % 7) * 0.0015;
+            const desiredDir = canChasePlayer && Math.abs(dx) > 1.25 ? Math.sign(dx) : e.patrolDir;
+            let nextX = e.x + desiredDir * patrolSpeed;
+            if (nextX <= e.patrolMin) { nextX = e.patrolMin; e.patrolDir = 1; }
+            if (nextX >= e.patrolMax) { nextX = e.patrolMax; e.patrolDir = -1; }
+            const nextGround = enemyGroundAt(nextX, e.y);
+            if (nextGround && Math.abs(nextGround.y - e.y) < 0.2) {
+              e.state = 'walk';
+              e.x = nextX;
+              e.y = nextGround.y;
+              e.group.position.set(e.x, e.y, 0);
+              if (!canChasePlayer || Math.abs(dx) <= 1.25) e.group.scale.set(e.patrolDir * CHAR_SCALE, CHAR_SCALE, CHAR_SCALE);
+            } else {
+              e.patrolDir *= -1;
+              e.state = 'idle';
+            }
           }
 
           drawEnemy(e);
