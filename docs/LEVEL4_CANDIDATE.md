@@ -1,6 +1,6 @@
 # Authored Level 4 – Broken Arch Passage
 
-**Status:** isolated experimental replacement – not shipped to main or itch.io.
+**Status:** approved for production source merge on 2026-11-10; still awaiting full live gameplay and mobile verification. itch.io upload has NOT been synchronized.
 
 ## Intent
 Restore the missing fourth level with an original, structurally readable composition. **The deleted Split Basin Gate design must not return.** Level 4 has no `risingSpikes`, `pulseLaser`, vertical rising-line obstacle, or generic hazard; this is a deliberate learning-focused interlude between tutorial Level 3 and procedural Level 5.
@@ -24,7 +24,7 @@ Restore the missing fourth level with an original, structurally readable composi
 - New Level 4 has four manually authored enemies on solid surfaces, four structures, one exact stair
 - Tier changes 2.5, 2.5, −2.8 use only permitted increments
 - Two modeled jumps using `MOVE_SPEED=0.14`, `JUMP_SPEED=0.62`, `GRAVITY=-0.032` have nominal landing positions x≈28.26 and x≈43.88 respectively
-- JavaScript syntax passed on equivalent local candidate; the read-only repository verifier must also pass
+- JavaScript syntax passed on equivalent local candidate; the read-only repository verifier passed on the candidate branch
 
 ## Remaining gates (NOT VERIFIED)
 
@@ -36,4 +36,4 @@ Restore the missing fourth level with an original, structurally readable composi
 - Seamless transition Level 3 → Level 4 → Level 5
 - iOS/Android landscape and portrait input and HUD
 
-**Never promote or give Astra this experimental version as the authoritative baseline until manual gameplay and responsive QA pass.**
+**Release control:** User explicitly approved merging the Level 4 candidate. Do not describe this version as fully playtested, synchronize itch.io without verifying the exact package, or begin Astra's visual redesign until the requested game-finalization and real gameplay QA are addressed.

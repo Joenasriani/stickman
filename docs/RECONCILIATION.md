@@ -1,48 +1,34 @@
-# Repository reconciliation – 2026-11-07
+# Authoritative repository handoff – 2026-11-10
 
-## Authority and completed work
+## Current release
 
-- Project: **In a Stickman's World**, repository `Joenasriani/stickman`.
-- Approved product: reverted, no-outro, 15-level stability-lock ZIP. `main/index.html` matches its HTML **byte-for-byte**.
-- Active level IDs: **1, 2, 3, 5–16**. This is **15 playable entries**. Level 4 was intentionally removed for its unwanted obstacles. Deleted late duplicate levels 17–20 stay excluded.
-- **Do not silently renumber levels**. Enemy counts and tier/difficulty rules depend on the underlying numeric level IDs. Display-label renumbering, or reintroducing Level 4, needs explicit approval and regression testing.
-- The previously attempted throne ending and secret-menu trigger were reverted. Do **not** revive them via old attachments or branches.
-- Six gameplay assets (`fonts`, `music`, `sfx`) remain unchanged; check `RELEASE_MANIFEST.json` for SHA-256 values.
-- The game source remains intentionally frozen under SHA-256 `185b233500237341e00d74c19036f6873b0f4cb2aada7e4218e315d35d821e9f`, Git blob `c17b919453dd4ae646bd045ef0678cc2a78df32f`.
+- **In a Stickman's World**, GitHub `Joenasriani/stickman`, branch `main`.
+- **16 playable level entries numbered 1–16**, including the newly authored **Level 4: Broken Arch Passage**.
+- This Level 4 **replaces**, and does not resurrect, the previously rejected Level 4. It has four platforms/tiers, four grounded enemies, one exact stair, two gaps, three optional elevated potions, and no dynamic hazards.
+- Levels 1–3 and 5–16 retain their previously approved implementations and original generator IDs. Do **not** renumber or re-generate them.
+- Rejected throne outro, secret outro button, and removed duplicate levels 17–20 remain excluded. Existing hidden level selector is retained.
+- Approved release source Git blob: `aab04c844637e3530534b34a4d591b424656e896`; source SHA-256: `5f46e28e0adbc9e006237bc3a69d4e61664eefd6df4ac317cd166c78a014e684`.
+- Preserve the six committed font/music/SFX assets exactly as recorded in `RELEASE_MANIFEST.json`. Three.js r128 still loads from cdnjs, not from a local file.
 
-## Git synchronization history
+## Verification boundaries
 
-- Original GitHub 20-level `main` preserved at branch `backup/pre-sync-2026-11-05`, commit `56a0cc582468ce2457c358b73543502d9dd7869c`.
-- 2026-11-05 commit `259b846afe592e3ed2fa641512d9dbf98effdf18` synchronized the approved 15-level HTML and six original media assets without gameplay changes.
-- Three legacy workflows `cleanup-main-design.yml`, `force-clean-pencil-levels.yml`, and `rebuild-clean-pencil-levels.yml` were removed from active `main`: they modified geometry/collisions automatically and could undo approved gameplay. Their contents remain available in history/backup.
-- GitHub Pages Actions reported **success** on the 2026-11-05 approved commit. This is deployment status, **not** browser-playback proof.
-- The experimental cinematic and optional ECC tooling branches retain history. Neither is authoritative for game behavior.
+- User reviewed the preview and explicitly authorized merge on 2026-11-10.
+- Automated read-only checks verified source/asset hashes, level labels/count, retired workflow absence, and JavaScript syntax on the candidate branch.
+- **NOT VERIFIED:** a complete desktop or mobile playthrough, Level 3 → Level 4 → Level 5 player traversal, all level solvability, physical-device touch controls, matching itch.io upload, or live rendered visual quality. A successful CI check or Pages deployment cannot establish these.
+- See `docs/QA.md` and `docs/LEVEL4_CANDIDATE.md` for the outstanding test matrix.
 
-## Current maintenance constraints
+## Historical archive (reference only; not active instructions)
 
-1. Preserve `index.html` exactly unless the user explicitly approves a gameplay, UI, input, camera, state, or dependency change.
-2. Keep Level 4 deleted and skip it during normal level progression. Levels 1–3 and 5–16 must remain as approved.
-3. Do not merge old cinematic, outro, ECC tooling, or export experiments automatically.
-4. Never restore retired write-enabled geometry workflows. Only read-only verification should run on pushes or PRs.
-5. Three.js r128 still loads from cdnjs. Local bundling remains **not done**, and altering the script tag should be reviewed as a separate compatibility change.
-6. Do not mistake successful `node --check`, ZIP checks, hashes, or a Pages deployment for playtesting.
+1. **Original 20-level main:** backed up as `backup/pre-sync-2026-11-05`, commit `56a0cc582468ce2457c358b73543502d9dd7869c`; contains historical, unapproved designs and retired geometry-writing workflows.
+2. **Approved 15-level no-Level-4 release:** commit `170962c128ab922afce4d0642e95c495bf001477`, source SHA-256 `185b233500237341e00d74c19036f6873b0f4cb2aada7e4218e315d35d821e9f`. Superseded, preserved in Git history.
+3. **Level 4 development:** draft PR #4, `fix/restore-authored-level-4`. Its design was approved for merge, and PR history remains as provenance.
+4. Rejected throne cinematic and retired ECC tooling branches/PRs were deliberately not merged. Do not revive them.
+5. Retired write-enabled workflows `cleanup-main-design.yml`, `force-clean-pencil-levels.yml`, `rebuild-clean-pencil-levels.yml` must not return to active `main`.
 
-## Unverified / still open
+## Next-thread operational instructions
 
-- Live game start, audio, controls, secret menu, exit transitions, and all 15 levels in a browser.
-- Mobile portrait/landscape interactions and controls.
-- Solvability, hazards, reachability, physics, enemy counts/tier counts in runtime.
-- CDN availability for end users; no local Three.js is bundled.
-- Published itch.io build version has **not** been matched against this commit.
-
-## Operational handoff
-
-- Read `README.md`, `RELEASE_MANIFEST.json`, and `docs/QA.md` first.
-- Run `python3 tools/validate_release.py` and inspect the read-only Actions check.
-- Verify `main/index.html` has the manifest Git blob SHA before editing.
-- For a rollback, inspect `backup/pre-sync-2026-11-05`, but note this backup is **not** the approved current release.
-- The approved ZIP's SHA-256 is listed in the manifest. The ZIP is a historical local deliverable, **not** a GitHub release asset.
-
-## 2026-11-10 experimental Level 4 candidate
-
-Only branch `fix/restore-authored-level-4`: reintroduce **new authored Broken Arch Passage** as Level 4, 4 platform tiers, 4 grounded enemies, one stair, three optional potions, zero dynamic hazards. All older Levels 1–3 and 5–16 retain their original definitions and numerical IDs. Removed obsolete PREMIUM Level4 hazard/theme mapping and adjusted its unused fallback to 5. Main remains protected until candidate browser QA is complete. See `docs/LEVEL4_CANDIDATE.md`.
+1. Trust `main` plus `RELEASE_MANIFEST.json`, this handoff, and `docs/QA.md`; do not trust superseded branch instructions over them.
+2. Check the published commit, `index.html` Git blob, exact level labels, all six asset hashes, and the read-only Actions result before making edits.
+3. Finish real browser and mobile regression QA before calling the release fully tested or before treating it as the locked baseline for a visual redesign.
+4. Future art-direction changes (including Astra Work) must use an **isolated branch, separate deployment, and approval gate**, preserving current gameplay and input semantics.
+5. Only explicit approval may change collision, enemy/tier counts, camera, audio, physics, level layouts, or production.
