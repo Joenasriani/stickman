@@ -27,3 +27,7 @@ The check does **not** rewrite game code, regenerate levels, alter collisions, o
 Test in a real browser on desktop and mobile, in both orientations where applicable. Confirm startup with the CDN accessible, intro/start, HUD, keyboard/touch controls, audio/mute/volume, combat/block, enemy/hazard interaction, death/restart, secret level selector, normal exits, skip from Level 3 to Level 5, all playable levels through Level 16, and final victory.
 
 Do not label a release **fully tested** until the journey is actually completed and evidence is captured. Record defects with browser/device/version and reproduction steps; change only the affected systems.
+
+## 2026-11-10 Level 4 candidate-specific tests
+
+The `fix/restore-authored-level-4` branch requires an actual browser playthrough of Level 3 → Level 4 → Level 5, and independent test selection of Level 4 through the hidden level selector. Test the exact staircase endpoints, 2.0-unit ascending gap, 2.2-unit descending gap, all four enemy patrol bounds, three optional above-route potions, death/restart, touch inputs, and exit. Results: **NOT VERIFIED in browser**. Do not mark production ready or automatically merge on green syntax/hash checks alone.

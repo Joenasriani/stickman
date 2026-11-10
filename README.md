@@ -9,7 +9,11 @@ This repository contains the browser build for In a Stickman's World.
 Created by Joe Nasr:
 https://joe-nasr-signals.vercel.app/
 
-## Approved release
+## Experimental branch warning
+
+This branch is a **NOT RELEASED** 16-level candidate restoring a **completely new Level 4**. The production `main` and published itch.io game remain on the approved 15-level build. No visual redesign has started. See [Level 4 candidate QA](docs/LEVEL4_CANDIDATE.md) before considering release.
+
+## Approved release (production `main`)
 
 The current authorized `main` build contains **15 playable levels**, internally numbered **1–3 and 5–16**. **Level 4 is intentionally removed**. Level identifiers are deliberately not renumbered because progression, enemy counts, and tiers use those IDs.
 

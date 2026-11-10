@@ -1,20 +1,21 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "1.2",
   "project": "In a Stickman's World",
-  "release_id": "stability-lock-15-levels-2026-11-05",
+  "release_id": "candidate-authored-level4-2026-11-10",
   "release_date": "2026-11-05",
-  "last_reconciled": "2026-11-07",
-  "authority": "User-approved reverted 15-level no-outro gameplay ZIP",
+  "last_reconciled": "2026-11-10",
+  "authority": "Experimental Level 4 restoration candidate on fix/restore-authored-level-4. NOT approved or deployed production.",
   "source_file": "index.html",
-  "source_sha256": "185b233500237341e00d74c19036f6873b0f4cb2aada7e4218e315d35d821e9f",
-  "source_git_blob_sha1": "c17b919453dd4ae646bd045ef0678cc2a78df32f",
-  "source_bytes": 142537,
-  "source_zip_sha256": "e80ae54bb58f359cbbaf8babb9c7650b3d96114dce65a545b72480ac5b63accd",
-  "playable_level_count": 15,
+  "source_sha256": "f03304201561aaeea18eaca4475677499407e41f15d90683f0dfdf6eb2d89b83",
+  "source_git_blob_sha1": "2f0f64aca0f29b45c430f4199f2d585b5c5dae74",
+  "source_bytes": 143620,
+  "source_zip_sha256": null,
+  "playable_level_count": 16,
   "playable_level_numbers": [
     1,
     2,
     3,
+    4,
     5,
     6,
     7,
@@ -28,10 +29,10 @@
     15,
     16
   ],
-  "numbering_policy": "Original numeric level IDs are preserved intentionally: enemy count, tiers, and difficulty depend on those IDs. Do not renumber labels or IDs without an explicitly approved gameplay migration.",
+  "numbering_policy": "Level 4 is a newly authored replacement, not the deleted Split Basin Gate. Levels 5–16 keep original IDs and procedural enemy/tier counts. No renumbering.",
   "exclusions": [
-    "Level 4 (intentionally removed)",
-    "duplicate levels 17-20",
+    "Original rejected Level 4 layout and its risingSpikes/pulseLaser hazards",
+    "duplicate levels 17–20",
     "throne-ending outro",
     "secret-menu outro button"
   ],
@@ -50,18 +51,26 @@
   ],
   "external_dependency": "Three.js r128 loaded from cdnjs; not locally bundled. Requires network access to load.",
   "validation": {
-    "source_file_hash": "SHA-256 match confirmed against approved local build",
+    "source_file_hash": "candidate SHA-256 computed against the GitHub-created blob; check in read-only validator",
     "assets": "Six asset SHA-256 hashes confirmed against approved ZIP",
-    "javascript_syntax": "passed, node --check",
-    "zip_integrity": "passed on approved ZIP, which is not committed to git",
-    "github_pages_deployment": "GitHub Actions reported success for commit 259b846afe592e3ed2fa641512d9dbf98effdf18",
-    "live_page_visual": "not verified; browser fetch unavailable in audit environment",
-    "browser_runtime": "not verified; headless browser navigation was blocked by environment",
-    "mobile_portrait_landscape": "not verified",
-    "complete_playthrough": "not verified"
+    "javascript_syntax": "passed locally on equivalent candidate, GitHub CI pending",
+    "zip_integrity": "NOT VERIFIED for the exact GitHub blob; preview ZIP not yet published",
+    "github_pages_deployment": "NOT DEPLOYED: production main remains on approved 15-level release",
+    "live_page_visual": "NOT VERIFIED for candidate",
+    "browser_runtime": "NOT VERIFIED for candidate; browser external scripts blocked in local runtime environment",
+    "mobile_portrait_landscape": "NOT VERIFIED",
+    "complete_playthrough": "NOT VERIFIED",
+    "level4_static_geometry": "4 platforms with y=0,2.5,5,2.2; 4 enemies with solid patrolling bounds; one exact stair; 2 jump arcs calculated feasible; no hazards"
   },
   "rollback_branch": "backup/pre-sync-2026-11-05",
   "rollback_commit": "56a0cc582468ce2457c358b73543502d9dd7869c",
   "history": "Earlier 20-level source, retired workflows, old build experiments and unmerged feature branches remain recoverable in Git history. Do not merge experimental branches without review.",
-  "notes": "Gameplay index.html is intentionally frozen and byte-identical to approved build. The repository maintenance changes in 2026-11-07 reconciliation are documentation and read-only validation only."
+  "notes": "This is a not-yet-released candidate for manual playtesting. The current main branch and published GitHub Pages game are not modified. Base gameplay Levels 1-3 and 5-16 preserved. The deleted Level4 procedural theme/hazard mapping was removed.",
+  "previous_release": {
+    "release_id": "stability-lock-15-levels-2026-11-05",
+    "source_sha256": "185b233500237341e00d74c19036f6873b0f4cb2aada7e4218e315d35d821e9f",
+    "source_zip_sha256": "e80ae54bb58f359cbbaf8babb9c7650b3d96114dce65a545b72480ac5b63accd",
+    "playable_levels": 15,
+    "main_head": "170962c128ab922afce4d0642e95c495bf001477"
+  }
 }

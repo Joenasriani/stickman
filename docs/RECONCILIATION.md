@@ -42,3 +42,7 @@
 - Verify `main/index.html` has the manifest Git blob SHA before editing.
 - For a rollback, inspect `backup/pre-sync-2026-11-05`, but note this backup is **not** the approved current release.
 - The approved ZIP's SHA-256 is listed in the manifest. The ZIP is a historical local deliverable, **not** a GitHub release asset.
+
+## 2026-11-10 experimental Level 4 candidate
+
+Only branch `fix/restore-authored-level-4`: reintroduce **new authored Broken Arch Passage** as Level 4, 4 platform tiers, 4 grounded enemies, one stair, three optional potions, zero dynamic hazards. All older Levels 1–3 and 5–16 retain their original definitions and numerical IDs. Removed obsolete PREMIUM Level4 hazard/theme mapping and adjusted its unused fallback to 5. Main remains protected until candidate browser QA is complete. See `docs/LEVEL4_CANDIDATE.md`.
