@@ -6,9 +6,9 @@
   "last_reconciled": "2026-11-10",
   "authority": "Experimental Level 4 restoration candidate on fix/restore-authored-level-4. NOT approved or deployed production.",
   "source_file": "index.html",
-  "source_sha256": "f03304201561aaeea18eaca4475677499407e41f15d90683f0dfdf6eb2d89b83",
-  "source_git_blob_sha1": "2f0f64aca0f29b45c430f4199f2d585b5c5dae74",
-  "source_bytes": 143620,
+  "source_sha256": "5f46e28e0adbc9e006237bc3a69d4e61664eefd6df4ac317cd166c78a014e684",
+  "source_git_blob_sha1": "aab04c844637e3530534b34a4d591b424656e896",
+  "source_bytes": 143608,
   "source_zip_sha256": null,
   "playable_level_count": 16,
   "playable_level_numbers": [
