@@ -824,10 +824,11 @@ html, body {
           const dy = e.clientY - orbit.lastY;
           orbit.lastX = e.clientX;
           orbit.lastY = e.clientY;
+          // Direct manipulation: a one-finger drag moves the rendered world with the finger.
           const orbitYawLimit = 1.17; // wider left/right orbit while keeping side-scroller readability
           const orbitPitchLimit = 0.92; // real forward/back tilt in Z-depth, controlled by vertical drag
-          orbit.yaw = Math.max(-orbitYawLimit, Math.min(orbitYawLimit, orbit.yaw + dx * 0.004));
-          orbit.pitch = Math.max(-orbitPitchLimit, Math.min(orbitPitchLimit, orbit.pitch - dy * 0.0065));
+          orbit.yaw = Math.max(-orbitYawLimit, Math.min(orbitYawLimit, orbit.yaw - dx * 0.004));
+          orbit.pitch = Math.max(-orbitPitchLimit, Math.min(orbitPitchLimit, orbit.pitch + dy * 0.0065));
         });
 
         const endOrbitDrag = e => {

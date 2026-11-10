@@ -32,3 +32,7 @@
 3. Finish real browser and mobile regression QA before calling the release fully tested or before treating it as the locked baseline for a visual redesign.
 4. Future art-direction changes (including Astra Work) must use an **isolated branch, separate deployment, and approval gate**, preserving current gameplay and input semantics.
 5. Only explicit approval may change collision, enemy/tier counts, camera, audio, physics, level layouts, or production.
+
+## 2026-11-10 direct-manipulation camera correction
+
+User requested a **grab-the-world** interaction: single-finger drags move scenery in the same on-screen direction. On main this reverses only the per-drag yaw and pitch sign mappings, retaining orbit limits, camera profile, pinch zoom, two-pointer pan, touch control bindings, and all 16 level geometries. Verify real-device behavior separately. Earlier 16-level camera mapping remains available in Git history at merge commit `74a7617362efec0a9e915e26e99408f2da94faaa`.
