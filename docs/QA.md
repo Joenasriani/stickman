@@ -28,3 +28,7 @@ Still **NOT VERIFIED in real gameplay**:
 Capture tested commit, browser/device, viewport, playthrough result, screenshots/recording if possible, bugs and reproduction steps. Mark anything untested **NOT VERIFIED** rather than PASS.
 
 GitHub Pages deployment status must be checked after the merge independently. A green Actions run is necessary but insufficient evidence of a functioning game.
+
+## 2026-11-10 camera direct-manipulation correction
+
+Single-finger movement should now drag the rendered **world in the same direction** as the finger: right → right; left → left; down → down; up → up. This is a change to yaw/pitch input signs only. Two-finger pan, pinch zoom, and scroll zoom retain their existing mappings. **Real-device verification NOT DONE**; test all four directions, gesture switching and touch controls before treating as playtested.
