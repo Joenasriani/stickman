@@ -1,29 +1,30 @@
-# Verification scope
+# Release verification – 16 levels (2026-11-10)
 
-## Automated check
+## Automated, read-only check
 
-Run `python3 tools/validate_release.py` in the repository root with Python 3 and Node.js installed. The read-only GitHub Actions workflow runs the same check on push, PR, and manual dispatch.
+Run `python3 tools/validate_release.py` (Python 3 and Node.js required). GitHub Actions runs the same check on PR, push to main, and manual dispatch.
 
-Checks are intentionally narrow:
-- Approved `index.html` SHA-256 and byte count.
-- Active level labels exactly `1, 2, 3, 5, ..., 16`, total 15.
-- No throne/outro selectors.
-- Six unchanged asset SHA-256 hashes.
-- Old auto-rewriting workflows absent.
-- Inline JavaScript parses with `node --check`.
+It verifies source SHA-256 and bytes, exact sequential level labels 1–16, absence of rejected outro hooks and retired gameplay-mutating workflows, unchanged six asset hashes, Three.js CDN script reference, and JavaScript syntax using `node --check`.
 
-The check does **not** rewrite game code, regenerate levels, alter collisions, or publish releases. It deliberately fails when the approved build changes until the change is explicitly reviewed and the release manifest is updated.
+These checks **do not** prove level solvability, real controls, visual quality, physical-device compatibility, or gameplay behavior.
 
-## Actual evidence and limits
+## Approved design and current limitations
 
-- Source file hash and ZIP hash were verified against the approved local package.
-- The approved ZIP passed decompression-integrity checks.
-- The GitHub Pages deployment reported `success` for commit `259b846afe592e3ed2fa641512d9dbf98effdf18`.
-- Attempts to navigate to both local HTTP and `file://` in headless Chromium were blocked by this environment (`ERR_BLOCKED_BY_ADMINISTRATOR`). **No actual browser gameplay verification was achieved.**
-- Neither the live GitHub Pages viewport nor itch.io published upload was independently compared in a browser.
+User approved the Level 4 preview and requested merging to production. Level 4 is Broken Arch Passage, not the removed Split Basin Gate. The prior 15-level build is preserved in Git history.
 
-## Manual acceptance tests still required
+Still **NOT VERIFIED in real gameplay**:
+- Launch in Chrome/Firefox/Safari; intro, HUD, start, level transition, restart, victory and failure
+- Level 1 → Level 16 full end-to-end traversal and physical solvability
+- Specific Level 3 → 4 → 5 transition; hidden level selector identifies Level 4
+- Level 4: one staircase, 2.0-unit rising gap, 2.2-unit descending gap, four enemy patrols, optional potions, spawn and exit
+- Combat/block, health, economy/collectibles, audio/mute and controls
+- Mobile portrait and landscape, safe areas, multi-touch, camera and touch controls
+- Desktop camera and keyboard input; unusual viewport ratios
+- Published itch.io ZIP correspondence to GitHub source
+- External CDN Three.js loading for all target devices
 
-Test in a real browser on desktop and mobile, in both orientations where applicable. Confirm startup with the CDN accessible, intro/start, HUD, keyboard/touch controls, audio/mute/volume, combat/block, enemy/hazard interaction, death/restart, secret level selector, normal exits, skip from Level 3 to Level 5, all playable levels through Level 16, and final victory.
+## QA evidence requirements
 
-Do not label a release **fully tested** until the journey is actually completed and evidence is captured. Record defects with browser/device/version and reproduction steps; change only the affected systems.
+Capture tested commit, browser/device, viewport, playthrough result, screenshots/recording if possible, bugs and reproduction steps. Mark anything untested **NOT VERIFIED** rather than PASS.
+
+GitHub Pages deployment status must be checked after the merge independently. A green Actions run is necessary but insufficient evidence of a functioning game.

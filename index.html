@@ -1961,8 +1961,7 @@ html, body {
       // BANNED FOR FUTURE LEVEL CREATION per user rule: Level 4 hazard set = risingSpikes + pulseLaser.
       // Do not use those two obstacle designs in newly created levels unless explicitly restored.
       const PREMIUM_OBSTACLE_SEQUENCE = Object.freeze({
-        // Level 4 was removed from the playable campaign; its old hazard set is kept here only as legacy data.
-        4: ['risingSpikes', 'pulseLaser'],
+        // Rejected Level 4 hazard mapping removed; new authored Level 4 uses no dynamic obstacles.
         5: ['rotatingMace', 'slidingBladeGate'],
         // Levels 6-10: three hazards each - early read, mid timing gate, late pressure beat.
         6: ['stomper', 'daggerRing', 'pulseLaser'],
@@ -1985,7 +1984,6 @@ html, body {
       });
 
       const PREMIUM_LEVEL_THEMES = Object.freeze({
-        4:  { title: 'Split Basin Gate',        firstY: 0.0,  ySeq: [0, 2.2, 0, 2.8],                         seg: [2, 3, 2, 3],       gaps: [1.2, 2.2, 0.8, 1.8],       modes: ['run', 'crest', 'run', 'stepUp'],       stair: -1, potionOffset: 1 },
         5:  { title: 'Clean Switchback Stairs', firstY: 2.2,  ySeq: [2.2, 0, 2.5, 5.0, 7.5],                   seg: [3, 2, 3, 2, 3],    gaps: [0.8, 1.8, 2.6, 1.2, 2.2],  modes: ['stepDown', 'run', 'stepUp', 'run', 'crest'], stair: 4, potionOffset: 2 },
         6:  { title: 'Sawtooth Islands',        firstY: 4.7,  ySeq: [4.7, 2.2, 5.0, 2.5, 5.3, 2.8],             seg: [2, 3, 2, 4, 2, 3], gaps: [2.6, 1.2, 2.2, 0.8, 1.8],  modes: ['run', 'stepUp', 'stepDown', 'crest', 'run', 'valley'], stair: -1, potionOffset: 0 },
         7:  { title: 'Crescent Descent',        firstY: 0.0,  ySeq: [0, 2.5, 5.3, 7.8, 5.3, 2.8, 0.3],          seg: [3, 2, 4, 2, 3, 2, 3], gaps: [1.8, 0.8, 2.6, 1.2, 2.2], modes: ['stepUp', 'crest', 'run', 'stepDown', 'valley', 'run'], stair: 3, potionOffset: 1 },
@@ -2076,7 +2074,7 @@ html, body {
       }
 
       function buildPremiumStickmanLevel(levelNumber, obstacleKinds = null) {
-        const theme = PREMIUM_LEVEL_THEMES[levelNumber] || PREMIUM_LEVEL_THEMES[4];
+        const theme = PREMIUM_LEVEL_THEMES[levelNumber] || PREMIUM_LEVEL_THEMES[5];
         const targetExitX = getPremiumTargetExitX(levelNumber);
         const startX = -8;
         const startY = theme.firstY;
@@ -2301,6 +2299,38 @@ html, body {
             createStaircase(48.0, 0, 12, 0.50, 0.35, 1); // connects exactly to x 54.0, y 4.20
             createEnemy(57.0, 4.20);
             createDoor(59.2, 5.0, true);
+          }
+        },
+        {
+          name: 'Level 4',
+          start: { x: -7, y: 0 },
+          exit: { x: 53, y: 3.0 },
+          build() {
+            // Broken Arch Passage: four separate architectural tiers, one exact staircase,
+            // a short upward gap and a broad descending gap. No rejected Level 4 hazards.
+            // Tier 1: long, safe runway with the first enemy well away from spawn.
+            createPlatform(-8, 0, 11);
+            createDoor(-7, 0.8, false);
+            createEnemy(6.5, 0);
+            createPotion(9.0, 1.7); // Optional jump reward; not on the running line.
+
+            // Only stair: endpoints exactly match tiers at (11, 0) and (15, 2.5).
+            createStaircase(11, 0, 10, 0.4, 0.25, 1);
+
+            // Tier 2: the short upper approach.
+            createPlatform(15, 2.5, 25);
+            createEnemy(20.0, 2.5);
+            createPotion(22.0, 4.2); // Optional jump reward above solid floor.
+
+            // Tier 3: a deliberate 2-unit gap and 2.5-unit upward jump.
+            createPlatform(27, 5.0, 40);
+            createEnemy(34.0, 5.0);
+            createPotion(37.5, 6.7); // Reachable only by choosing to jump.
+
+            // Tier 4: 2.2-unit empty gap, then a 2.8-unit descent.
+            createPlatform(42.2, 2.2, 56);
+            createEnemy(48.0, 2.2);
+            createDoor(53, 3.0, true);
           }
         },
         {

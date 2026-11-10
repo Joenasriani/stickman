@@ -1,22 +1,28 @@
-# in a stickman's world
+# In a Stickman's World
 
-Game: https://joenasriani.github.io/stickman/
+**Play the game:** https://joenasriani.github.io/stickman/
 
-Public game: https://joenasr.itch.io/in-a-stickmans-world
+**itch.io:** https://joenasr.itch.io/in-a-stickmans-world (published itch.io build has not been independently compared with this release)
 
-This repository contains the browser build for In a Stickman's World.
+A browser-based black-and-white stickman platform game by Joe Nasr.
 
-Created by Joe Nasr:
-https://joe-nasr-signals.vercel.app/
+## Current source release – November 10, 2026
 
-## Approved release
+**16 sequential levels (1–16).** Level 4, **Broken Arch Passage**, is a newly authored replacement for the previously rejected Level 4. The rejected layout and its banned dynamic obstacles were not restored. Levels 1–3 and 5–16 preserve their original level definitions and internal numeric IDs.
 
-The current authorized `main` build contains **15 playable levels**, internally numbered **1–3 and 5–16**. **Level 4 is intentionally removed**. Level identifiers are deliberately not renumbered because progression, enemy counts, and tiers use those IDs.
+This version was explicitly approved for merge following a preview review, with **full desktop/mobile playthrough still unverified**. An automated source/asset/syntax check is not a substitute for gameplay QA.
 
-The king's throne outro and its secret-menu trigger are **not included** in this release. Experimental branches and historical versions must not be merged without review.
+The previously rejected throne-ending cutscene and secret-menu ending trigger are not included. The existing hidden level selector is preserved.
 
-- [Release manifest](RELEASE_MANIFEST.json) – authoritative hashes, level IDs, release provenance, and test scope.
-- [Reconciliation and handoff](docs/RECONCILIATION.md) – completed decisions, archive locations, conflicts, and recovery guidance.
-- [Verification guide](docs/QA.md) – automated checks versus manual playtesting.
+### Authoritative documents
 
-The game loads Three.js r128 from cdnjs. Browser playback and mobile controls require independent runtime testing; passing the build checks alone does not establish playability.
+- [Release manifest](RELEASE_MANIFEST.json) – source hashes, exact 16-level numbering, asset integrity and QA status
+- [Repository handoff and history](docs/RECONCILIATION.md) – current decisions and archived prior release
+- [QA protocol](docs/QA.md) – automated versus outstanding real-world gameplay tests
+- [Level 4 design and QA](docs/LEVEL4_CANDIDATE.md) – geometry, rationale and remaining verification
+
+### Change control
+
+The earlier 15-level version is preserved in Git history at commit `170962c128ab922afce4d0642e95c495bf001477`. Any future art-direction experiment must start on a separate branch and preserve this gameplay behavior unless changes are expressly approved.
+
+The game currently loads Three.js r128 from cdnjs; it is not bundled locally, and a network connection is required.
